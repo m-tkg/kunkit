@@ -36,9 +36,8 @@ public enum KuntraykunMenuExport {
     /// 現在のメニュー構造を書き出し、`menuSnapshot` を通知する。
     public static func export(_ menu: NSMenu) {
         guard let fileURL else { return }
-        menu.update() // enabled 状態を確定させてから読む。
         let generation = UUID().uuidString
-        let snapshot = MenuSnapshot(generation: generation, items: nodes(of: menu, path: []))
+        let snapshot = makeSnapshot(of: menu, generation: generation)
         do {
             let data = try snapshot.encode()
             try FileManager.default.createDirectory(
@@ -74,6 +73,16 @@ public enum KuntraykunMenuExport {
         guard last < current.numberOfItems else { return false }
         current.performActionForItem(at: last)
         return true
+    }
+
+    /// メニューを現在の内容でシリアライズする。
+    /// 動的メニュー（delegate が `menuNeedsUpdate` で再構築）は **`NSMenu.update()` では populate されない**
+    /// （update() は delegate を呼ばない。実機確認済み）ため、シリアライズ前に delegate を明示的に呼ぶ。
+    /// これを怠ると items が空になる（gitkun / whisperkun の複製実装で実際に発生した不具合）。
+    static func makeSnapshot(of menu: NSMenu, generation: String) -> MenuSnapshot {
+        menu.delegate?.menuNeedsUpdate?(menu)
+        menu.update() // enabled 状態を確定させてから読む。
+        return MenuSnapshot(generation: generation, items: nodes(of: menu, path: []))
     }
 
     // MARK: - private
