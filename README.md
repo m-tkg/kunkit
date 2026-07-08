@@ -19,8 +19,12 @@ kun シリーズ（`com.mtkg.*kun` の macOS メニューバー常駐アプリ�
 - **KunUpdateKit**（Foundation のみ）
   - `GitHubReleaseFetcher`: `/releases/latest` の **ETag 条件付き取得**。304（変更なし）は
     GitHub の未認証レート制限（IP あたり 60 回/時）を消費しないため、kun シリーズ全アプリが
-    同一 IP から毎時チェックしても 403 にならない。レート制限時は `RateLimitedError`
+    同一 IP からチェックしても 403 にならない。レート制限時は `RateLimitedError`
     （リセット時刻付きの文言）を投げる。
+  - `ReleaseInfo` / `VersionComparator`: リリース JSON のモデル（zip アセット解決込み）と
+    `v` タグ vs `CFBundleShortVersionString` の数値比較。
+  - `KunUpdateSchedule`: 定期チェックの共通間隔（**6時間**）と `Timer.tolerance` の推奨値。
+    各アプリはタイマー間隔をハードコードせずこれを参照する。
 
     ```swift
     import KunUpdateKit
