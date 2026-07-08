@@ -16,6 +16,19 @@ kun シリーズ（`com.mtkg.*kun` の macOS メニューバー常駐アプリ�
     アップデート報告、メニュー表示中の書き出し保留
   - `KuntraykunIconExport`: 実アイコンの共有書き出し（v2）
   - `KuntraykunMenuExport`: メニュー構造の共有書き出しと項目実行（v4）
+- **KunUpdateKit**（Foundation のみ）
+  - `GitHubReleaseFetcher`: `/releases/latest` の **ETag 条件付き取得**。304（変更なし）は
+    GitHub の未認証レート制限（IP あたり 60 回/時）を消費しないため、kun シリーズ全アプリが
+    同一 IP から毎時チェックしても 403 にならない。レート制限時は `RateLimitedError`
+    （リセット時刻付きの文言）を投げる。
+
+    ```swift
+    import KunUpdateKit
+    // UpdateService.fetchLatestRelease の HTTP 部分を置き換える
+    let data = try await GitHubReleaseFetcher(
+        repoFullName: "m-tkg/<app>", userAgent: "<App>").fetchLatestReleaseData()
+    return try decoder.decode(ReleaseInfo.self, from: data)
+    ```
 
 ## 使い方（kun アプリ側）
 

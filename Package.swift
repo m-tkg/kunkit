@@ -13,11 +13,15 @@ let package = Package(
     products: [
         .library(name: "KunIntegrationProtocol", targets: ["KunIntegrationProtocol"]),
         .library(name: "KunIntegrationBridge", targets: ["KunIntegrationBridge"]),
+        .library(name: "KunUpdateKit", targets: ["KunUpdateKit"]),
     ],
     targets: [
         .target(name: "KunIntegrationProtocol"),
         .target(name: "KunIntegrationBridge", dependencies: ["KunIntegrationProtocol"]),
+        // GitHub Releases の更新チェック共通部（ETag 条件付きリクエストでレート制限を消費しない）。
+        .target(name: "KunUpdateKit"),
         .testTarget(name: "KunIntegrationProtocolTests", dependencies: ["KunIntegrationProtocol"]),
         .testTarget(name: "KunIntegrationBridgeTests", dependencies: ["KunIntegrationBridge"]),
+        .testTarget(name: "KunUpdateKitTests", dependencies: ["KunUpdateKit"]),
     ]
 )
