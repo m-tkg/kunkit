@@ -1,4 +1,5 @@
 import AppKit
+import CryptoKit
 import OSLog
 import KunIntegrationProtocol
 
@@ -34,26 +35,29 @@ public enum KuntraykunMenuExport {
     }
 
     /// 現在のメニュー構造を書き出し、`menuSnapshot` を通知する。
+    /// 内容が前回と同じ（世代が同じ）ならファイルは書き直さず、通知だけ送る
+    /// （kuntraykun の再起動後にも能力を再認識させるため、通知は毎回送る）。
     public static func export(_ menu: NSMenu) {
         guard let fileURL else { return }
-        let generation = UUID().uuidString
-        let snapshot = makeSnapshot(of: menu, generation: generation)
-        do {
-            let data = try snapshot.encode()
-            try FileManager.default.createDirectory(
-                at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-            // 原子的書き込み → 通知の順序（読み手が中途半端な内容を見ないため）。
-            try data.write(to: fileURL, options: .atomic)
-        } catch {
-            log.error("menu snapshot export failed: \(error.localizedDescription, privacy: .public)")
-            return
+        let snapshot = makeSnapshot(of: menu)
+        if snapshot.generation != currentGeneration || !FileManager.default.fileExists(atPath: fileURL.path) {
+            do {
+                let data = try snapshot.encode()
+                try FileManager.default.createDirectory(
+                    at: fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+                // 原子的書き込み → 通知の順序（読み手が中途半端な内容を見ないため）。
+                try data.write(to: fileURL, options: .atomic)
+            } catch {
+                log.error("menu snapshot export failed: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            currentGeneration = snapshot.generation
         }
-        currentGeneration = generation
         DistributedNotificationCenter.default().postNotificationName(
             Notification.Name(IntegrationProtocol.menuSnapshotNotification), object: nil,
             userInfo: [
                 IntegrationProtocol.keyBundleID: baseBundleID,
-                IntegrationProtocol.keyGeneration: generation,
+                IntegrationProtocol.keyGeneration: snapshot.generation,
                 IntegrationProtocol.keyProtocol: IntegrationProtocol.version,
             ],
             deliverImmediately: true
@@ -79,10 +83,24 @@ public enum KuntraykunMenuExport {
     /// 動的メニュー（delegate が `menuNeedsUpdate` で再構築）は **`NSMenu.update()` では populate されない**
     /// （update() は delegate を呼ばない。実機確認済み）ため、シリアライズ前に delegate を明示的に呼ぶ。
     /// これを怠ると items が空になる（gitkun / whisperkun の複製実装で実際に発生した不具合）。
-    static func makeSnapshot(of menu: NSMenu, generation: String) -> MenuSnapshot {
+    /// 世代は**内容のハッシュから決定的に**導出する。UUID のような毎回変わる世代だと、
+    /// kuntraykun がメニューを開くたびに送る requestMenu への応答で世代が進み、
+    /// 開いているサブメニューの世代が常に古くなって invoke が全て拒否される
+    /// （サブメニュー項目をクリックしても何も起きない不具合。実機で発生）。
+    static func makeSnapshot(of menu: NSMenu) -> MenuSnapshot {
         menu.delegate?.menuNeedsUpdate?(menu)
         menu.update() // enabled 状態を確定させてから読む。
-        return MenuSnapshot(generation: generation, items: nodes(of: menu, path: []))
+        let items = nodes(of: menu, path: [])
+        return MenuSnapshot(generation: contentGeneration(of: items), items: items)
+    }
+
+    /// 内容から世代トークンを導出する（同じ内容なら同じ値・変われば変わる）。
+    private static func contentGeneration(of items: [MenuItemNode]) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        guard let data = try? encoder.encode(items) else { return UUID().uuidString }
+        let digest = SHA256.hash(data: data)
+        return digest.map { String(format: "%02x", $0) }.joined()
     }
 
     // MARK: - private
