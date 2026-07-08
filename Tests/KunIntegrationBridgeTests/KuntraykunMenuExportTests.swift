@@ -28,7 +28,7 @@ final class KuntraykunMenuExportTests: XCTestCase {
         let menu = NSMenu()
         menu.delegate = delegate
 
-        let snapshot = KuntraykunMenuExport.makeSnapshot(of: menu, generation: "g")
+        let snapshot = KuntraykunMenuExport.makeSnapshot(of: menu)
 
         XCTAssertEqual(delegate.updateCount, 1, "シリアライズ前に menuNeedsUpdate が呼ばれる")
         XCTAssertEqual(snapshot.items.count, 3)
@@ -43,10 +43,41 @@ final class KuntraykunMenuExportTests: XCTestCase {
         menu.autoenablesItems = false
         menu.addItem(withTitle: "静的項目", action: nil, keyEquivalent: "")
 
-        let snapshot = KuntraykunMenuExport.makeSnapshot(of: menu, generation: "g")
+        let snapshot = KuntraykunMenuExport.makeSnapshot(of: menu)
 
         XCTAssertEqual(snapshot.items.count, 1)
         XCTAssertEqual(snapshot.items[0].title, "静的項目")
-        XCTAssertEqual(snapshot.generation, "g")
+        XCTAssertFalse(snapshot.generation.isEmpty)
+    }
+
+    // MARK: 世代トークン（内容ハッシュ）
+
+    /// 世代は**メニュー内容から決定的に**導出されること。
+    /// UUID のような毎回変わる世代だと、kuntraykun がメニューを開くたびに送る requestMenu への
+    /// 応答で世代が進み、開いているサブメニューが持つ世代が常に古くなって
+    /// invoke が全て「古い依頼」として拒否される（サブメニュー項目をクリックしても何も起きない不具合）。
+    func testGenerationIsStableForSameContent() {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.addItem(withTitle: "項目A", action: nil, keyEquivalent: "")
+        menu.addItem(withTitle: "項目B", action: nil, keyEquivalent: "")
+
+        let first = KuntraykunMenuExport.makeSnapshot(of: menu)
+        let second = KuntraykunMenuExport.makeSnapshot(of: menu)
+
+        XCTAssertEqual(first.generation, second.generation, "内容が同じなら世代は変わらない")
+    }
+
+    /// 内容が変わったら世代も変わること（インデックスのズレによる誤実行防止は維持）。
+    func testGenerationChangesWhenContentChanges() {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        menu.addItem(withTitle: "項目A", action: nil, keyEquivalent: "")
+
+        let before = KuntraykunMenuExport.makeSnapshot(of: menu)
+        menu.addItem(withTitle: "項目B", action: nil, keyEquivalent: "")
+        let after = KuntraykunMenuExport.makeSnapshot(of: menu)
+
+        XCTAssertNotEqual(before.generation, after.generation)
     }
 }
