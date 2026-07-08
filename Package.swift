@@ -18,5 +18,6 @@ let package = Package(
         .target(name: "KunIntegrationProtocol"),
         .target(name: "KunIntegrationBridge", dependencies: ["KunIntegrationProtocol"]),
         .testTarget(name: "KunIntegrationProtocolTests", dependencies: ["KunIntegrationProtocol"]),
+        .testTarget(name: "KunIntegrationBridgeTests", dependencies: ["KunIntegrationBridge"]),
     ]
 )
