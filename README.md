@@ -25,6 +25,16 @@ kun シリーズ（`com.mtkg.*kun` の macOS メニューバー常駐アプリ�
     `v` タグ vs `CFBundleShortVersionString` の数値比較。
   - `KunUpdateSchedule`: 定期チェックの共通間隔（**6時間**）と `Timer.tolerance` の推奨値。
     各アプリはタイマー間隔をハードコードせずこれを参照する。
+  - `ReleaseDownloader`: リリースの `.zip` アセットのダウンロード（キャッシュ無効セッション）。
+    `ReleaseInfo.currentAppVersion` は実行中アプリの `CFBundleShortVersionString`。
+- **KunSupport**（Foundation のみ）
+  - `BundleIdentity`: `.local`（ローカル検証ビルド）を除いた基底 bundle ID・`isLocalBuild` 判定。
+  - `ProcessRunner`: 外部コマンド実行（`readabilityHandler` で逐次読み、pipe バッファ詰まりを回避）。
+  - `KunSettingsStore<Settings>`: 設定の JSON 永続化（読込失敗は既定値フォールバック）。
+- **KunAppKit**（AppKit / ServiceManagement）
+  - `KunAppLaunch.terminateIfAlreadyRunning()`: 多重起動防止（`main.swift` 冒頭で呼ぶ）。
+  - `LoginItemController`: ログイン項目（`SMAppService.mainApp`）の register/unregister。
+  - `SelfUpdater`: zip 展開 → 基底 ID 検証 → 旧プロセス終了待ちの入替スクリプト → 再起動。
 
     ```swift
     import KunUpdateKit
