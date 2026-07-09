@@ -3,7 +3,7 @@
 kun シリーズ（`com.mtkg.*kun` の macOS メニューバー常駐アプリ）と集約ハブ kuntraykun が共有する
 実装を集約する SwiftPM ライブラリ。**kun アプリ側で複製されがちな共通機能はまずここに実装する**。
 
-- 上位方針: `../CLAUDE_base.md`（kun アプリ共通ガイド）。
+- kun アプリ共通ガイド: `../kun-template/CLAUDE_base.md`（canonical は kun-template リポジトリ）。
 - 連携プロトコルの正式仕様: kuntraykun リポジトリ `docs/kun-integration-protocol.md`。
 
 ## ターゲット構成
